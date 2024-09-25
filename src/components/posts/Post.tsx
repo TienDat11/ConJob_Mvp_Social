@@ -29,7 +29,7 @@ export default function Post({ post }: Readonly<PostProps>) {
       <div className="flex justify-between gap-3">
         <div className="flex flex-wrap gap-3">
           <UserTooltip user={post.user} >
-          <Link href={`/users/${post.user.username}`}>
+          <Link href={`/users/${post.user.username}`} prefetch={true}>
             <UserAvatar avatarUrl={post.user.avatarUrl} />
           </Link>
           </UserTooltip>

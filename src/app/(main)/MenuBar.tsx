@@ -34,7 +34,7 @@ export default async function MenuBar({ className }: MenuBarProps) {
         title="Home"
         asChild
       >
-        <Link href="/">
+        <Link href="/" prefetch={true}>
           <Home />
           <span className="hidden lg:inline">Home</span>
         </Link>
@@ -49,7 +49,7 @@ export default async function MenuBar({ className }: MenuBarProps) {
         title="Bookmarks"
         asChild
       >
-        <Link href="/bookmarks">
+        <Link href="/bookmarks" prefetch={true}>
           <Bookmark />
           <span className="hidden lg:inline">Bookmarks</span>
         </Link>

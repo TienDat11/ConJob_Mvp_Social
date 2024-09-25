@@ -29,22 +29,12 @@ export async function GET(req: Request) {
       },
     });
 
-    const fileKeys = unusedMedia.map((m) => {
-      const key = m.url.split(`/a/${process.env.NEXT_UPLOADTHING_APP_ID}/`)[1];
-      console.log('Generated key:', key);
-      return key;
-    });
-
     new UTApi().deleteFiles(
-      fileKeys  
-    ).then(response => {
-      console.log('Files deleted successfully:', response);
-      // Bạn có thể thêm logic để xử lý sau khi xóa thành công
-    })
-    .catch(error => {
-      console.error('Error deleting files:', error);
-      // Bạn có thể xử lý lỗi tại đây
-    });
+      unusedMedia.map(
+        (m) =>
+          m.url.split(`/a/${process.env.NEXT_UPLOADTHING_APP_ID}/`)[1],
+      ),
+    );
 
     await prisma.media.deleteMany({
       where: {

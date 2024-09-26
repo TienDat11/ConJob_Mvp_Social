@@ -130,3 +130,7 @@ export interface NotificationCountInfo {
 export interface MessageCountInfo {
   unreadCount: number;
 }
+
+export interface ValuesNameChat {
+  nameChat: string;
+}

@@ -17,7 +17,7 @@ interface ChatSidebarProps {
   onClose: () => void;
 }
 
-export default function ChatSidebar({ open, onClose }: ChatSidebarProps) {
+export default function ChatSidebar({ open, onClose }: Readonly<ChatSidebarProps>) {
   const { user } = useSession();
 
   const queryClient = useQueryClient();
@@ -77,7 +77,7 @@ interface MenuHeaderProps {
   onClose: () => void;
 }
 
-function MenuHeader({ onClose }: MenuHeaderProps) {
+function MenuHeader({ onClose }: Readonly<MenuHeaderProps>) {
   const [showNewChatDialog, setShowNewChatDialog] = useState(false);
 
   return (

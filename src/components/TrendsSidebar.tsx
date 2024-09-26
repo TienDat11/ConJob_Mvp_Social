@@ -26,6 +26,21 @@ async function WhoToFollow() {
 
   if (!user) return null;
 
+  const totalUser = await prisma.user.count({
+    where:{
+      NOT: {
+        id: user.id,
+      },
+      followers: {
+        none: {
+          followerId: user.id,
+        }
+      }
+    },
+  })
+
+  const randomOffset = Math.floor(Math.random() * totalUser)
+
   const usersToFollow = await prisma.user.findMany({
     where: {
       NOT: {
@@ -38,11 +53,12 @@ async function WhoToFollow() {
       },
     },
     select: getUserDataSelect(user.id),
-    take: 5,
+    take: 2,
+    skip: randomOffset
   });
 
   return (
-    <div className="space-y-5 rounded-2xl bg-card p-5 shadow-sm">
+    <div className="space-y-5 rounded-2xl bg-card p-5 shadow-sm max-h-[50vh] overflow-hidden hover:overflow-y-auto transition-all">
       <div className="text-xl font-bold">Who to follow</div>
       {usersToFollow.map((user) => (
         <div key={user.id} className="flex items-center justify-between gap-3">

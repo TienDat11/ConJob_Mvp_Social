@@ -8,7 +8,7 @@ import { EditorContent, useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import { useSubmitPostMutation } from "./mutations";
 import "./styles.css";
-import { useRef, ClipboardEvent } from "react";
+import { useRef, ClipboardEvent, useMemo, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { ImageIcon, Loader2, X } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -68,12 +68,16 @@ export default function PostEditor() {
     );
   }
 
-  function onPaste(e: ClipboardEvent<HTMLInputElement>) {
+  const onPaste = useCallback(
+    (e: ClipboardEvent<HTMLInputElement>) => {
+      const files = Array.from(e.clipboardData.items)
+        .filter((item) => item.kind === "file")
+        .map((item) => item.getAsFile()) as File[];
 
-    const files = Array.from(e.clipboardData.items).filter(item => item.kind === "file").map(item => item.getAsFile()) as File[];
-
-    startUpload(files)
-  }
+      startUpload(files);
+    },
+    [startUpload],
+  );
 
   return (
     <div className="flex flex-col gap-5 rounded-2xl bg-card p-5 shadow-sm">
@@ -191,8 +195,14 @@ function AttachmentPreview({
   attachment: {file, mediaId, isUploading},
   onRemoveClick,
 }: Readonly<AttachmentPreviewProps>) {
-  const src = URL.createObjectURL(file);
+  const src = useMemo(() => URL.createObjectURL(file), [file]);
 
+  useEffect(() => {
+    return () => {
+      URL.revokeObjectURL(src); 
+    };
+  }, [src]);
+  
   return <div className={cn("relative mx-auto size-fit ", isUploading && "opacity-50")}>
     {file.type.startsWith("image") ? 
     (

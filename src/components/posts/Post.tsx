@@ -14,6 +14,7 @@ import { Media } from "@prisma/client";
 import LikeButton from "./LikeButton";
 import BookmarkButton from "./BookmarkButton";
 import Comments from "../comments/Comments";
+import VideoBeautiful from "../VideoBeautiful";
 
 interface PostProps {
   post: PostData;
@@ -130,11 +131,8 @@ function MediaPreview({ media }: Readonly<MediaPreviewProps>) {
   if (media.type === "VIDEO") {
     return (
       <div>
-        <video
+        <VideoBeautiful
           src={media.url}
-          controls
-          className="w-full mx-auto size-fit max-h-[30rem] rounded-2xl"
-          preload="metadata"
         />
       </div>
     );

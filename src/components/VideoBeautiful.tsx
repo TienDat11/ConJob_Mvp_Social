@@ -16,127 +16,106 @@ const VideoBeautiful: React.FC<VideoBeautifulProps> = ({ src }) => {
   const [currentTime, setCurrentTime] = useState<number>(0);
   const [duration, setDuration] = useState<number>(0);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isHovered, setIsHovered] = useState<boolean>(false);
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const playerRef = useRef<HTMLDivElement | null>(null);
 
+  // Load metadata and progress event
   useEffect(() => {
     const video = videoRef.current;
-    if (video) {
-      video.addEventListener("timeupdate", handleTimeUpdate);
-      video.addEventListener("loadedmetadata", handleLoadedMetadata);
-      video.addEventListener("waiting", () => setIsLoading(true));
-      video.addEventListener("canplay", () => setIsLoading(false));
-    }
+    if (!video) return;
+
+    const handleLoadedMetadata = () => {
+      setDuration(video.duration);
+      setIsLoading(false);
+    };
+
+    const handleTimeUpdate = () => {
+      setProgress((video.currentTime / video.duration) * 100);
+      setCurrentTime(video.currentTime);
+    };
+
+    video.addEventListener("loadedmetadata", handleLoadedMetadata);
+    video.addEventListener("timeupdate", handleTimeUpdate);
+    video.addEventListener("waiting", () => setIsLoading(true));
+    video.addEventListener("canplay", () => setIsLoading(false));
 
     return () => {
-      if (video) {
-        video.removeEventListener("timeupdate", handleTimeUpdate);
-        video.removeEventListener("loadedmetadata", handleLoadedMetadata);
-      }
+      video.removeEventListener("loadedmetadata", handleLoadedMetadata);
+      video.removeEventListener("timeupdate", handleTimeUpdate);
     };
   }, []);
 
-  const handleLoadedMetadata = () => {
-    if (videoRef.current) {
-      setDuration(videoRef.current.duration);
-      setIsLoading(false);
-    }
-  };
-
-  const handleTimeUpdate = () => {
+  // Toggle play/pause
+  const togglePlay = useCallback(() => {
     const video = videoRef.current;
-    if (video) {
-      setProgress((video.currentTime / video.duration) * 100);
-      setCurrentTime(video.currentTime);
-    }
-  };
+    if (!video) return;
 
-  const togglePlay = () => {
-    const video = videoRef.current;
-    if (video) {
-      if (video.paused) {
-        video.play().then(r => {
-          console.log("Video play",r);
-          setIsPlaying(true);
-        });
-      } else {
-        video.pause();
-        setIsPlaying(false);
-      }
-    }
-  };
-
-  const handleVolumeChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      const value = parseFloat(e.target.value);
-      setVolume(value);
-      if (videoRef.current) {
-        videoRef.current.volume = value;
-      }
-      setIsMuted(value === 0);
-    }
-    ,[volume]
-  )
-
-  const toggleMute = () => {
-    if (isMuted) {
-      if (videoRef.current) {
-        videoRef.current.volume = volume;
-      }
-      setIsMuted(false);
+    if (video.paused) {
+      video.play();
+      setIsPlaying(true);
     } else {
-      if (videoRef.current) {
-        videoRef.current.volume = 0;
-      }
-      setIsMuted(true);
+      video.pause();
+      setIsPlaying(false);
     }
-  };
+  }, []);
 
-  const handleProgress = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const time = (parseFloat(e.target.value) * (videoRef.current?.duration ?? 0)) / 100;
+  // Handle volume change
+  const handleVolumeChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = parseFloat(e.target.value);
+    if (value === volume) return; // Avoid re-render if the value hasn't changed
+    setVolume(value);
+    if (videoRef.current) videoRef.current.volume = value;
+    setIsMuted(value === 0);
+  }, [volume]);
+
+  // Toggle mute
+  const toggleMute = useCallback(() => {
     if (videoRef.current) {
-      videoRef.current.currentTime = time;
+      videoRef.current.volume = isMuted ? volume : 0;
     }
-    setProgress(parseFloat(e.target.value));
-  };
+    setIsMuted((prev) => !prev);
+  }, [isMuted, volume]);
 
+  // Handle progress seeking
+  const handleProgress = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const newTime = (parseFloat(e.target.value) * (videoRef.current?.duration ?? 0)) / 100;
+    if (videoRef.current) videoRef.current.currentTime = newTime;
+    setProgress(parseFloat(e.target.value));
+  }, []);
+
+  // Toggle fullscreen
   const toggleFullscreen = useCallback(() => {
     if (!isFullscreen) {
-      if (playerRef.current?.requestFullscreen) {
-        playerRef.current.requestFullscreen().then(r => {
-          console.log(r);
-          setIsFullscreen(true);
-        });
-      }
-    } else if (document.exitFullscreen !== null) {
-      document.exitFullscreen().then(r => {
-        console.log(r);
-        setIsFullscreen(false);
-      });
+      playerRef.current?.requestFullscreen?.();
+    } else {
+      document.exitFullscreen?.();
     }
+    setIsFullscreen((prev) => !prev);
   }, [isFullscreen]);
 
-  const handlePlaybackSpeed = (speed: number) => {
-    if (videoRef.current) {
-      videoRef.current.playbackRate = speed;
-    }
+  // Handle playback speed
+  const handlePlaybackSpeed = useCallback((speed: number) => {
+    if (videoRef.current) videoRef.current.playbackRate = speed;
     setPlaybackSpeed(speed);
     setShowSettings(false);
-  };
+  }, []);
 
-  const formatTime = (time: number) => {
+  // Format time
+  const formatTime = useCallback((time: number) => {
     const minutes = Math.floor(time / 60);
     const seconds = Math.floor(time % 60);
-    return `${minutes}:${seconds < 10 ? "0" + seconds : seconds}`;
-  };
+    return `${minutes}:${seconds < 10 ? `0${seconds}` : seconds}`;
+  }, []);
 
+  // Keyboard events (space to toggle play, "F" for fullscreen)
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
-      if (e.code === "Space") {
+      if ((isHovered || isPlaying) && e.code === "Space") {
         e.preventDefault();
         togglePlay();
-      } else if (e.code === "KeyF") {
+      } else if ((isHovered || isPlaying) && e.code === "KeyF") {
         toggleFullscreen();
       }
     };
@@ -147,11 +126,12 @@ const VideoBeautiful: React.FC<VideoBeautifulProps> = ({ src }) => {
 
     document.addEventListener("keydown", handleKeyPress);
     document.addEventListener("fullscreenchange", handleFullScreenChange);
+
     return () => {
-      document.removeEventListener("keydown", handleKeyPress)
+      document.removeEventListener("keydown", handleKeyPress);
       document.removeEventListener("fullscreenchange", handleFullScreenChange);
     };
-  }, [toggleFullscreen]);
+  }, [togglePlay, toggleFullscreen, isHovered, isPlaying]);
 
   return (
     <div
@@ -159,6 +139,8 @@ const VideoBeautiful: React.FC<VideoBeautifulProps> = ({ src }) => {
       className="relative w-full max-w-4xl mx-auto bg-black rounded-lg overflow-hidden shadow-xl"
       role="region"
       aria-label="Video Player"
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
     >
       <video
         ref={videoRef}

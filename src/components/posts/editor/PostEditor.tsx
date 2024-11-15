@@ -48,25 +48,33 @@ export default function PostEditor() {
     ],
   });
 
-  const input =
+  const input = useMemo (() => 
     editor?.getText({
       blockSeparator: "\n",
-    }) ?? "";
+    }) ?? "",
+    [editor]
+  )
 
-  function onSubmit() {
-    mutation.mutate(
-      {
-        content: input,
-        mediaIds: attachments.map((a) => a.mediaId).filter(Boolean) as string[],
-      },
-      {
-        onSuccess: () => {
-          editor?.commands.clearContent();
-          resetMediaUploads();
+
+  const onSubmit = useCallback(() => {
+    if (input.trim() && !isUploading) {
+      mutation.mutate(
+        {
+          content: input,
+          mediaIds: attachments.map((a) => a.mediaId).filter(Boolean) as string[],
         },
-      },
-    );
-  }
+        {
+          onSuccess: () => {
+            editor?.commands.clearContent();
+            resetMediaUploads();
+          },
+        },
+      );
+    }
+  }, [input, isUploading, mutation]);
+
+
+
 
   const onPaste = useCallback(
     (e: ClipboardEvent<HTMLInputElement>) => {

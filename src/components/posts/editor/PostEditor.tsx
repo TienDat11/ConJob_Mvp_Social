@@ -48,12 +48,9 @@ export default function PostEditor() {
     ],
   });
 
-  const input = useMemo (() => 
-    editor?.getText({
-      blockSeparator: "\n",
-    }) ?? "",
-    [editor]
-  )
+  const input = editor?.getText({
+    blockSeparator: "\n",
+  }) ?? "";
 
 
   const onSubmit = useCallback(() => {

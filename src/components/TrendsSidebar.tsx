@@ -6,7 +6,6 @@ import { Loader2 } from "lucide-react";
 import { unstable_cache } from "next/cache";
 import Link from "next/link";
 import { Suspense } from "react";
-
 import UserAvatar from "./UserAvatar";
 import FollowerButton from "./FollowerButton";
 
@@ -21,41 +20,37 @@ export default function TrendsSidebar() {
   );
 }
 
+const getWhoToFollow = unstable_cache(
+  async (userId: string) => {
+    const totalUser = await prisma.user.count({
+      where: {
+        NOT: { id: userId },
+        followers: { none: { followerId: userId } },
+      },
+    });
+
+    const randomOffset = Math.floor(Math.random() * totalUser);
+
+    return prisma.user.findMany({
+      where: {
+        NOT: { id: userId },
+        followers: { none: { followerId: userId } },
+      },
+      select: getUserDataSelect(userId),
+      take: 2,
+      skip: randomOffset,
+    });
+  },
+  ["who_to_follow"],
+  { revalidate: 60 * 60 },
+);
+
 async function WhoToFollow() {
   const { user } = await validateRequest();
 
   if (!user) return null;
 
-  const totalUser = await prisma.user.count({
-    where:{
-      NOT: {
-        id: user.id,
-      },
-      followers: {
-        none: {
-          followerId: user.id,
-        }
-      }
-    },
-  })
-
-  const randomOffset = Math.floor(Math.random() * totalUser)
-
-  const usersToFollow = await prisma.user.findMany({
-    where: {
-      NOT: {
-        id: user.id,
-      },
-      followers: {
-        none: {
-          followerId: user.id,
-        },
-      },
-    },
-    select: getUserDataSelect(user.id),
-    take: 2,
-    skip: randomOffset
-  });
+  const usersToFollow = await getWhoToFollow(user.id);
 
   return (
     <div className="space-y-5 rounded-2xl bg-card p-5 shadow-sm max-h-[50vh] overflow-hidden hover:overflow-y-auto transition-all">
@@ -81,7 +76,7 @@ async function WhoToFollow() {
             initialState={{
               followers: user._count.followers,
               isFollowerByUser: user.followers.some(
-                ({ followerId }) => followerId === user.id,
+                ({ followerId }) => followerId === user.id
               ),
             }}
           />
@@ -94,12 +89,12 @@ async function WhoToFollow() {
 const getTrendingTopics = unstable_cache(
   async () => {
     const result = await prisma.$queryRaw<{ hashtag: string; count: bigint }[]>`
-            SELECT LOWER(unnest(regexp_matches(content, '#[[:alnum:]_]+', 'g'))) AS hashtag, COUNT(*) AS count
-            FROM posts
-            GROUP BY (hashtag)
-            ORDER BY count DESC, hashtag ASC
-            LIMIT 5
-        `;
+      SELECT LOWER(unnest(regexp_matches(content, '#[[:alnum:]_]+', 'g'))) AS hashtag, COUNT(*) AS count
+      FROM posts
+      GROUP BY (hashtag)
+      ORDER BY count DESC, hashtag ASC
+      LIMIT 5
+    `;
 
     return result.map((row) => ({
       hashtag: row.hashtag,
@@ -107,10 +102,9 @@ const getTrendingTopics = unstable_cache(
     }));
   },
   ["trending_topics"],
-  {
-    revalidate: 3 * 60 * 60,
-  },
+  { revalidate: 3 * 60 * 60 }
 );
+
 
 async function TrendingTopics() {
   const trendingTopics = await getTrendingTopics();

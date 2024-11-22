@@ -71,8 +71,6 @@ export default function PostEditor() {
   }, [input, isUploading, mutation]);
 
 
-
-
   const onPaste = useCallback(
     (e: ClipboardEvent<HTMLInputElement>) => {
       const files = Array.from(e.clipboardData.items)

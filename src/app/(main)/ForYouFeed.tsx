@@ -3,6 +3,7 @@
 import InfiniteScrollContainer from "@/components/InfiniteScrollContainer";
 import Post from "@/components/posts/Post";
 import PostsLoadingSkeleton from "@/components/posts/PostsLoadingSkeleton";
+import { Button } from "@/components/ui/button";
 import kyInstance from "@/lib/ky";
 import { PostsPage } from "@/lib/types";
 import { useInfiniteQuery } from "@tanstack/react-query";
@@ -37,9 +38,18 @@ export default function ForYouFeed() {
 
   if (status === "success" && !posts.length && !hasNextPage) {
     return (
-      <p className="text-center text-muted-foreground">
-        No one has posted anything yet.
-      </p>
+    <div className="text-center text-muted-foreground">
+      <p>No one has posted anything yet.</p>
+      <Button
+        className="mt-3 px-4 py-2 bg-blue-500 text-white rounded"
+        onClick={() => {
+          const editor = document.getElementById("post-editor");
+          if (editor) editor.scrollIntoView({ behavior: "smooth" });
+        }}
+      >
+        Create your first post
+      </Button>
+    </div>
     );
   }
 

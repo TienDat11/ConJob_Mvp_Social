@@ -31,7 +31,7 @@ export default function Notification({notification} : NotificationProps) {
   const {message, icon, href} = notificationTypeMap[notification.type];
 
   return (
-    <Link href={href} className="block" prefetch={true}>
+    <Link href={href} className="block" >
       <article
         className={cn(
           "flex gap-3 rounded-2xl bg-card p-5 shadow-sm transition-colors hover:bg-card/70",

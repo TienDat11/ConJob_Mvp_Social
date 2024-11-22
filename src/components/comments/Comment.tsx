@@ -17,7 +17,7 @@ export default function Comment({comment}: Readonly<CommentProps>) {
     <div className="group/comment flex gap-3 py-3">
       <span className="hidden sm:inline">
         <UserTooltip user={comment.user}>
-          <Link href={`/users/${comment.user.username}`} prefetch={true}>
+          <Link href={`/users/${comment.user.username}`}>
             <UserAvatar avatarUrl={comment.user.avatarUrl} size={40} />
           </Link>
         </UserTooltip>

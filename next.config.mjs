@@ -1,10 +1,15 @@
 /** @type {import('next').NextConfig} */
-const nextConfig = {
-  experimental: {
-    staleTimes: {
-      dynamic: 30,
-    },
-  },
+import withBundleAnalyzer from "@next/bundle-analyzer";
+import TerserPlugin from "terser-webpack-plugin";
+
+const isProd = process.env.NODE_ENV === "production";
+
+const bundleAnalyzer = withBundleAnalyzer({
+  enabled: process.env.ANALYZE === "true",
+});
+
+const nextConfig = bundleAnalyzer({
+  compress: true,
   serverExternalPackages: ["@node-rs/argon2"],
   images: {
     remotePatterns: [
@@ -14,8 +19,36 @@ const nextConfig = {
         pathname: `/a/${process.env.NEXT_UPLOADTHING_APP_ID}/*`,
       },
     ],
+    deviceSizes: [320, 420, 768, 1024, 1200],
+    imageSizes: [16, 32, 48, 64, 96],
+    formats: ["image/webp"],
   },
-  rewrites: () => {
+  async headers() {
+    return [
+      {
+        source: "/(.*)",
+        headers: [
+          {
+            key: "Content-Security-Policy",
+            value: "default-src 'self'; img-src 'self' https:; script-src 'self';",
+          },
+          {
+            key: "Strict-Transport-Security",
+            value: "max-age=31536000; includeSubDomains; preload",
+          },
+          {
+            key: "X-Frame-Options",
+            value: "DENY",
+          },
+          {
+            key: "X-Content-Type-Options",
+            value: "nosniff",
+          },
+        ],
+      },
+    ];
+  },
+  async rewrites() {
     return [
       {
         source: "/hashtag/:tag",
@@ -23,6 +56,26 @@ const nextConfig = {
       },
     ];
   },
-};
+  webpack(config, { isServer }) {
+    if (isProd && !isServer) {
+      config.optimization.minimizer.push(
+        new TerserPlugin({
+          terserOptions: {
+            format: {
+              comments: false,
+            },
+            compress: {
+              drop_console: true,
+              passes: 2,
+            },
+            mangle: true,
+          },
+          extractComments: false,
+        })
+      );
+    }
+    return config;
+  },
+});
 
 export default nextConfig;

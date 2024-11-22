@@ -23,7 +23,7 @@ export default function Page() {
               <div  className="h-px flex-1 bg-muted"/>
             </div>
             <LoginForm />
-            <Link href="/signup" className="block text-center hover:underline" prefetch={true}>
+            <Link href="/signup" className="block text-center hover:underline">
               Don&apos;t have an account? Sign up
             </Link>
           </div>

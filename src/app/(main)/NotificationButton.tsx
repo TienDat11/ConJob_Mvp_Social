@@ -31,7 +31,7 @@ export default function NotificationsButton({
       title="Notifications"
       asChild
     >
-      <Link href="/notifications" prefetch={true}>
+      <Link href="/notifications">
         <div className="relative">
           <Bell />
           {!!data.unreadCount && (

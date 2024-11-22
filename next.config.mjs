@@ -23,31 +23,6 @@ const nextConfig = bundleAnalyzer({
     imageSizes: [16, 32, 48, 64, 96],
     formats: ["image/webp"],
   },
-  async headers() {
-    return [
-      {
-        source: "/(.*)",
-        headers: [
-          {
-            key: "Content-Security-Policy",
-            value: "default-src 'self'; img-src 'self' https:; script-src 'self';",
-          },
-          {
-            key: "Strict-Transport-Security",
-            value: "max-age=31536000; includeSubDomains; preload",
-          },
-          {
-            key: "X-Frame-Options",
-            value: "DENY",
-          },
-          {
-            key: "X-Content-Type-Options",
-            value: "nosniff",
-          },
-        ],
-      },
-    ];
-  },
   async rewrites() {
     return [
       {

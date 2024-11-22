@@ -27,7 +27,7 @@ export default function MessagesButton({ initialState }: MessagesButtonProps) {
       title="Messages"
       asChild
     >
-      <Link href="/messages" prefetch={true}>
+      <Link href="/messages">
         <div className="relative">
           <Mail />
           {!!data.unreadCount && (

@@ -1,8 +1,11 @@
 /** @type {import('next').NextConfig} */
 import withBundleAnalyzer from "@next/bundle-analyzer";
 import TerserPlugin from "terser-webpack-plugin";
+import path from "path";
+import { fileURLToPath } from "url";
 
-const isProd = process.env.NODE_ENV === "production";
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const bundleAnalyzer = withBundleAnalyzer({
   enabled: process.env.ANALYZE === "true",
@@ -32,7 +35,11 @@ const nextConfig = bundleAnalyzer({
     ];
   },
   webpack(config, { isServer }) {
-    if (isProd && !isServer) {
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      "@": path.resolve(__dirname, "src"),
+    };
+    if (process.env.NODE_ENV === "production" && !isServer) {
       config.optimization.minimizer.push(
         new TerserPlugin({
           terserOptions: {
@@ -49,6 +56,7 @@ const nextConfig = bundleAnalyzer({
         })
       );
     }
+
     return config;
   },
 });

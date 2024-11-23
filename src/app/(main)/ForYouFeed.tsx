@@ -4,12 +4,24 @@ import InfiniteScrollContainer from "@/components/InfiniteScrollContainer";
 import Post from "@/components/posts/Post";
 import PostsLoadingSkeleton from "@/components/posts/PostsLoadingSkeleton";
 import { Button } from "@/components/ui/button";
+import { PAGE_SIZE_AFTER_CACHE, PAGE_SIZE_FIRST_LOAD } from "@/constant/constant";
 import kyInstance from "@/lib/ky";
 import { PostsPage } from "@/lib/types";
-import { useInfiniteQuery } from "@tanstack/react-query";
+import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
 
 export default function ForYouFeed() {
+  const queryClient = useQueryClient();
+
+  const cachedPages = queryClient.getQueryData<{ pages: PostsPage[] }>([
+    "post-feed",
+    "for-you",
+  ])?.pages;
+
+  const postsFromCache = cachedPages?.flatMap((page) => page.posts) || [];
+  const isFirstLoad = !cachedPages; 
+
+
   const {
     data,
     fetchNextPage,
@@ -19,18 +31,19 @@ export default function ForYouFeed() {
     status,
   } = useInfiniteQuery({
     queryKey: ["post-feed", "for-you"],
-    queryFn: ({ pageParam }) =>
+    queryFn: ({ pageParam, meta }): Promise<PostsPage> =>
       kyInstance
         .get(
           "/api/posts/for-you",
-          pageParam ? { searchParams: { cursor: pageParam } } : {},  
+          { searchParams: { cursor: pageParam ?? '' , pageSize: isFirstLoad ? PAGE_SIZE_FIRST_LOAD : PAGE_SIZE_AFTER_CACHE, } }
         )
         .json<PostsPage>(),
     initialPageParam: null as string | null,
     getNextPageParam: (lastPage) => lastPage.nextCursor,
+    enabled: isFirstLoad,
   });
 
-  const posts = data?.pages.flatMap((page) => page.posts) || [];
+  const posts = isFirstLoad ? data?.pages.flatMap((page) => page.posts) || [] : postsFromCache;
 
   if (status === "pending") {
     return <PostsLoadingSkeleton />;

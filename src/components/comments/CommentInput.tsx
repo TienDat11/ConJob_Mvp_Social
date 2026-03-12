@@ -1,4 +1,4 @@
-import { PostData } from "@/lib/types";
+import { FeedPostData } from "@/lib/types";
 import { useState } from "react";
 import { useSubmitCommentMutation } from "./mutation";
 import { Input } from "../ui/input";
@@ -6,7 +6,7 @@ import { Button } from "../ui/button";
 import { Loader2, SendHorizonal } from "lucide-react";
 
 interface CommentInputProps {
-  post: PostData
+  post: FeedPostData
 }
 
 export default function CommentInput({post} : CommentInputProps) {

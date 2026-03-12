@@ -6,11 +6,10 @@ import UserAvatar from "@/components/UserAvatar";
 import UserTooltip from "@/components/UserTooltip";
 import prisma from "@/lib/prisma";
 import { getPostDataInclude, UserData } from "@/lib/types";
-import { Loader2 } from "lucide-react";
 import { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { cache, Suspense } from "react";
+import { cache } from "react";
 
 interface PageProps {
   params: { postId: string };
@@ -62,9 +61,7 @@ export default async function Page({ params: { postId } }: PageProps) {
         <Post post={post} />
       </div>
       <div className="sticky top-[5.25rem] hidden h-fit w-80 flex-none lg:block">
-        <Suspense fallback={<Loader2 className="mx-auto animate-spin" />}>
-          <UserInfoSidebar user={post.user} />
-        </Suspense>
+        <UserInfoSidebar user={post.user} loggedInUserId={user.id} />
       </div>
     </main>
   );
@@ -72,12 +69,10 @@ export default async function Page({ params: { postId } }: PageProps) {
 
 interface UserInfoSidebarProps {
   user: UserData;
+  loggedInUserId: string;
 }
 
-async function UserInfoSidebar({ user }: UserInfoSidebarProps) {
-  const { user: loggedInUser } = await validateRequest();
-
-  if (!loggedInUser) return null;
+function UserInfoSidebar({ user, loggedInUserId }: UserInfoSidebarProps) {
 
   return (
     <div className="space-y-5 rounded-2xl bg-card p-5 shadow-sm">
@@ -103,13 +98,13 @@ async function UserInfoSidebar({ user }: UserInfoSidebarProps) {
           {user.bio}
         </div>
       </Linkify>
-      {user.id !== loggedInUser.id && (
+      {user.id !== loggedInUserId && (
         <FollowerButton
           userId={user.id}
           initialState={{
             followers: user._count.followers,
             isFollowerByUser: user.followers.some(
-              ({ followerId }) => followerId === loggedInUser.id,
+              ({ followerId }) => followerId === loggedInUserId,
             ),
           }}
         />

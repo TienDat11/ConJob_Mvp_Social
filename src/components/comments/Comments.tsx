@@ -1,4 +1,4 @@
-import { CommentPage, PostData } from "@/lib/types";
+import { CommentPage, FeedPostData } from "@/lib/types";
 import CommentInput from "./CommentInput";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import kyInstance from "@/lib/ky";
@@ -7,7 +7,7 @@ import { Button } from "../ui/button";
 import PostsLoadingSkeleton from "../posts/PostsLoadingSkeleton";
 
 interface CommentProps {
-  post: PostData
+  post: FeedPostData
 }
 
 export default function Comments({post}: Readonly<CommentProps>) {

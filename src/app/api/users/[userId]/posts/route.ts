@@ -1,38 +1,85 @@
-import { validateRequest } from "@/auth";
+import { validateRequestFast } from "@/auth";
+import { logPerf, jsonWithPerf } from "@/lib/perf";
 import prisma from "@/lib/prisma";
-import { getPostDataInclude, PostsPage } from "@/lib/types";
+import { getFeedPostSelect, PostsPage } from "@/lib/types";
 import { NextRequest } from "next/server";
 
-export async function GET(req: NextRequest, {params: {userId}}: {params: {userId: string}}) {
+export async function GET(
+  req: NextRequest,
+  { params: { userId } }: { params: { userId: string } },
+) {
+  const routeStart = performance.now();
+
   try {
     const cursor = req.nextUrl.searchParams.get("cursor") ?? undefined;
-
     const pageSize = 4;
 
-    const { user } = await validateRequest();
+    const authStart = performance.now();
+    const { userId: loggedInUserId } = await validateRequestFast();
+    const authMs = performance.now() - authStart;
 
-    if(!user) {
-      return Response.json({error: "Unauthorized"}, {status: 401});
+    if (!loggedInUserId) {
+      const totalMs = performance.now() - routeStart;
+      logPerf(`/api/users/${userId}/posts`, {
+        status: 401,
+        totalMs,
+        authMs,
+      });
+
+      return jsonWithPerf(
+        { error: "Unauthorized" },
+        { status: 401 },
+        [
+          { name: "auth", durationMs: authMs },
+          { name: "total", durationMs: totalMs },
+        ],
+      );
     }
 
+    const dbStart = performance.now();
     const posts = await prisma.post.findMany({
       where: { userId },
-      include: getPostDataInclude(user.id),
+      select: getFeedPostSelect(loggedInUserId),
       orderBy: { createdAt: "desc" },
       take: pageSize + 1,
-      cursor: cursor ? {id: cursor} : undefined,
+      cursor: cursor ? { id: cursor } : undefined,
     });
+    const dbMs = performance.now() - dbStart;
 
     const nextCursor = posts.length > pageSize ? posts[pageSize].id : null;
 
     const data: PostsPage = {
       posts: posts.slice(0, pageSize),
       nextCursor,
-    }
+    };
 
-    return Response.json(data);
+    const totalMs = performance.now() - routeStart;
+    logPerf(`/api/users/${userId}/posts`, {
+      status: 200,
+      totalMs,
+      authMs,
+      dbMs,
+      postCount: data.posts.length,
+    });
+
+    return jsonWithPerf(data, { status: 200 }, [
+      { name: "auth", durationMs: authMs },
+      { name: "db", durationMs: dbMs },
+      { name: "total", durationMs: totalMs },
+    ]);
   } catch (error) {
-    console.log(error);
-    return Response.json({error: "Sever Internal Error"}, {status: 500});
+    const totalMs = performance.now() - routeStart;
+    logPerf(`/api/users/${userId}/posts`, {
+      status: 500,
+      totalMs,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    console.error(error);
+
+    return jsonWithPerf(
+      { error: "Internal server error" },
+      { status: 500 },
+      [{ name: "total", durationMs: totalMs }],
+    );
   }
 }

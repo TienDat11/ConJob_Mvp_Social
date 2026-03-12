@@ -1,6 +1,5 @@
 import { validateRequest } from "@/auth";
 import prisma from "@/lib/prisma";
-import { getUserDataSelect } from "@/lib/types";
 import { formatNumber } from "@/lib/utils";
 import { Loader2 } from "lucide-react";
 import { unstable_cache } from "next/cache";
@@ -14,46 +13,51 @@ export default function TrendsSidebar() {
     <div className="sticky top-[5.25rem] hidden h-fit w-72 flex-none space-y-5 md:block lg:w-80">
       <Suspense fallback={<Loader2 className="mx-auto animate-spin" />}>
         <WhoToFollow />
+      </Suspense>
+      <Suspense fallback={<Loader2 className="mx-auto animate-spin" />}>
         <TrendingTopics />
       </Suspense>
     </div>
   );
 }
 
-const getWhoToFollow = unstable_cache(
-  async (userId: string) => {
-    const totalUser = await prisma.user.count({
-      where: {
-        NOT: { id: userId },
-        followers: { none: { followerId: userId } },
-      },
-    });
-
-    const randomOffset = Math.floor(Math.random() * totalUser);
-
-    return prisma.user.findMany({
-      where: {
-        NOT: { id: userId },
-        followers: { none: { followerId: userId } },
-      },
-      select: getUserDataSelect(userId),
-      take: 2,
-      skip: randomOffset,
-    });
-  },
-  ["who_to_follow"],
-  { revalidate: 60 * 60 },
-);
+const getWhoToFollow = (userId: string) =>
+  unstable_cache(
+    async () => {
+      return prisma.user.findMany({
+        where: {
+          NOT: { id: userId },
+          followers: { none: { followerId: userId } },
+        },
+        select: {
+          id: true,
+          username: true,
+          displayName: true,
+          avatarUrl: true,
+          _count: {
+            select: {
+              followers: true,
+            },
+          },
+        },
+        take: 2,
+      });
+    },
+    ["who_to_follow", userId],
+    {
+      revalidate: 60 * 60,
+    },
+  );
 
 async function WhoToFollow() {
   const { user } = await validateRequest();
 
   if (!user) return null;
 
-  const usersToFollow = await getWhoToFollow(user.id);
+  const usersToFollow = await getWhoToFollow(user.id)();
 
   return (
-    <div className="space-y-5 rounded-2xl bg-card p-5 shadow-sm max-h-[50vh] overflow-hidden hover:overflow-y-auto transition-all">
+    <div className="max-h-[50vh] space-y-5 overflow-y-auto rounded-2xl bg-card p-5 shadow-sm">
       <div className="text-xl font-bold">Who to follow</div>
       {usersToFollow.map((user) => (
         <div key={user.id} className="flex items-center justify-between gap-3">
@@ -75,9 +79,7 @@ async function WhoToFollow() {
             userId={user.id}
             initialState={{
               followers: user._count.followers,
-              isFollowerByUser: user.followers.some(
-                ({ followerId }) => followerId === user.id
-              ),
+              isFollowerByUser: false,
             }}
           />
         </div>

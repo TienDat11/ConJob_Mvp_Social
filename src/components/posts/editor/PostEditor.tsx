@@ -8,13 +8,11 @@ import { EditorContent, useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import { useSubmitPostMutation } from "./mutations";
 import "./styles.css";
-import { useRef, ClipboardEvent, useMemo, useEffect, useCallback } from "react";
+import { useRef, ClipboardEvent, useCallback } from "react";
 import { Button } from "@/components/ui/button";
-import { ImageIcon, Loader2, X } from "lucide-react";
+import { ImageIcon, Loader2, X, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
-import Image from "next/image";
 import useMediaUpload, { Attachment } from "./useMediaUpload";
-import { useDropzone } from "@uploadthing/react";
 
 export default function PostEditor() {
   const { user } = useSession();
@@ -26,15 +24,12 @@ export default function PostEditor() {
     attachments,
     isUploading,
     uploadProgress,
+    validationError,
+    clearValidationError,
     removeAttachment,
+    retryUpload,
     reset: resetMediaUploads,
   } = useMediaUpload();
-
-  const {getRootProps, getInputProps, isDragActive} = useDropzone({
-    onDrop: startUpload
-  });
-
-  const {onClick, ...rootProps} = getRootProps();
 
   const editor = useEditor({
     extensions: [
@@ -46,6 +41,7 @@ export default function PostEditor() {
         placeholder: "What's crack-a-lackin'?",
       }),
     ],
+    immediatelyRender: false,
   });
 
   const input = editor?.getText({
@@ -68,7 +64,7 @@ export default function PostEditor() {
         },
       );
     }
-  }, [input, isUploading, mutation]);
+  }, [input, isUploading, mutation, attachments, editor, resetMediaUploads]);
 
 
   const onPaste = useCallback(
@@ -86,20 +82,34 @@ export default function PostEditor() {
     <div className="flex flex-col gap-5 rounded-2xl bg-card p-5 shadow-sm">
       <div className="flex gap-5">
         <UserAvatar avatarUrl={user.avatarUrl} className="hidden sm:inline" />
-        <div {...rootProps} className="w-full">
+        <div className="w-full">
         <EditorContent
           editor={editor}
           className="max-h-[20rem] w-full overflow-y-auto rounded-2xl bg-background px-5 py-3"
           onPaste={onPaste}
         />
-        <input {...getInputProps()} />
         </div>
       </div>
       {!!attachments.length && (
         <AttachmentPreviews
           attachments={attachments}
           removeAttachment={removeAttachment}
+          retryUpload={retryUpload ?? undefined}
         />
+      )}
+      {!!validationError && (
+        <div className="rounded-xl border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
+          <div className="flex items-center justify-between gap-3">
+            <span className="font-medium">{validationError}</span>
+            <button
+              type="button"
+              onClick={clearValidationError}
+              className="rounded-md border border-destructive/40 px-2 py-1 text-xs hover:bg-destructive/10"
+            >
+              Dismiss
+            </button>
+          </div>
+        </div>
       )}
       <div className="flex items-center justify-end gap-3">
         {isUploading && (
@@ -172,53 +182,79 @@ function AddAttachmentsButton({
 interface AttachmentPreviewsProps {
   attachments: Attachment[];
   removeAttachment: (filename: string) => void;
-} 
+  retryUpload?: (filename: string) => void;
+}
 
 
 interface AttachmentPreviewProps {
   attachment: Attachment,
   onRemoveClick: () => void,
+  onRetryClick?: () => void,
 }
 
 function AttachmentPreviews({
-  attachments, removeAttachment
+  attachments, removeAttachment, retryUpload
 }: Readonly<AttachmentPreviewsProps>) {
   return  <div className={cn("flex flex-col gap-5", attachments.length > 1 && "sm:grid sm:grid-cols-2 ")}>
     {attachments.map(attachment => (
-      <AttachmentPreview 
+      <AttachmentPreview
       key={attachment.file.name}
       attachment={attachment}
       onRemoveClick={() => removeAttachment(attachment.file.name)}
+      onRetryClick={retryUpload ? () => retryUpload(attachment.file.name) : undefined}
       />
     ))}
   </div>
 }
 
 function AttachmentPreview({
-  attachment: {file, mediaId, isUploading},
+  attachment: { file, previewUrl, isUploading, error },
   onRemoveClick,
+  onRetryClick,
 }: Readonly<AttachmentPreviewProps>) {
-  const src = useMemo(() => URL.createObjectURL(file), [file]);
-
-  useEffect(() => {
-    return () => {
-      URL.revokeObjectURL(src); 
-    };
-  }, [src]);
-  
   return <div className={cn("relative mx-auto size-fit ", isUploading && "opacity-50")}>
-    {file.type.startsWith("image") ? 
+    {file.type.startsWith("image") ?
     (
-      <Image src={src} alt="Attachment Preview" width={500} height={500} className="size-fit max-h-[50rem] rounded-2xl"/>
+      <img
+        src={previewUrl}
+        alt="Attachment Preview"
+        className="size-fit max-h-[50rem] rounded-2xl"
+      />
     )
     :
       (
         <video controls className="size-fit max-h-[50rem] rounded-xl w-full" preload="metadata">
-          <source src={src} type={file.type} />
+          <source src={previewUrl} type={file.type} />
         </video>
       )
     }
-    {!isUploading && (
+    {error && (
+      <div className="absolute inset-0 flex items-center justify-center bg-destructive/80 rounded-2xl">
+        <div className="text-center text-background p-4">
+          <p className="font-medium mb-2">Upload failed</p>
+          <p className="text-sm mb-3">{error}</p>
+          <div className="flex gap-2 justify-center">
+            {onRetryClick && (
+              <button
+                onClick={onRetryClick}
+                className="flex items-center gap-1 px-3 py-1.5 bg-background text-foreground rounded-lg hover:bg-background/90"
+              >
+                <RefreshCw size={16} />
+                Retry
+              </button>
+            )}
+            <button
+              onClick={onRemoveClick}
+              className="flex items-center gap-1 px-3 py-1.5 bg-background/50 text-foreground rounded-lg hover:bg-background/80"
+            >
+              <X size={16} />
+              Remove
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
+    {!isUploading && !error && (
       <button onClick={onRemoveClick} className="absolute right-3 top-3 rounded-full bg-foreground p-1.5 text-background transition-colors hover:bg-foreground/60">
         <X size={20} />
       </button>

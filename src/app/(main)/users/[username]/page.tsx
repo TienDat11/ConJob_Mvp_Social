@@ -79,7 +79,7 @@ interface UserProfileProps {
   loggedInUserId: string;
 }
 
-async function UserProfile({user, loggedInUserId }: UserProfileProps) {
+function UserProfile({user, loggedInUserId }: UserProfileProps) {
   const followerInfo: FollowerInfo = {
     followers: user._count.followers,
     isFollowerByUser: user.followers.some(

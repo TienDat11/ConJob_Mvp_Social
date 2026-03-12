@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useSession } from "@/app/(main)/SessionProvider";
-import { PostData } from "@/lib/types";
+import { FeedPostData } from "@/lib/types";
 import { formatRelativeDate,cn } from "@/lib/utils";
 import Link from "next/link";
 import UserAvatar from "../UserAvatar";
@@ -10,13 +10,13 @@ import PostMoreButton from "./PostMoreButton";
 import Linkify from "../Linkify";
 import UserTooltip from "../UserTooltip";
 import Image from "next/image";
-import { Media } from "@prisma/client";
+import { MediaType } from "@prisma/client";
 import LikeButton from "./LikeButton";
 import BookmarkButton from "./BookmarkButton";
 import Comments from "../comments/Comments";
 
 interface PostProps {
-  post: PostData;
+  post: FeedPostData;
 }
 
 export default function Post({ post }: Readonly<PostProps>) {
@@ -91,8 +91,14 @@ export default function Post({ post }: Readonly<PostProps>) {
   );
 }
 
+interface MediaPreviewAttachment {
+  id: string;
+  url: string;
+  type: MediaType;
+}
+
 interface MediaPreviewsProps {
-  attachments: Media[];
+  attachments: MediaPreviewAttachment[];
 }
 
 function MediaPreviews({ attachments }: Readonly<MediaPreviewsProps>) {
@@ -111,7 +117,7 @@ function MediaPreviews({ attachments }: Readonly<MediaPreviewsProps>) {
 }
 
 interface MediaPreviewProps {
-  media: Media;
+  media: MediaPreviewAttachment;
 }
 
 function MediaPreview({ media }: Readonly<MediaPreviewProps>) {
@@ -143,7 +149,7 @@ function MediaPreview({ media }: Readonly<MediaPreviewProps>) {
 }
 
 interface CommentButtonProps {
-  post: PostData;
+  post: FeedPostData;
   onClick: () => void;
 }
 

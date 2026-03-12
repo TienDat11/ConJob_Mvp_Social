@@ -1,4 +1,4 @@
-import { PostData } from "@/lib/types";
+import { FeedPostData } from "@/lib/types";
 import { MoreHorizontal, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { Button } from "../ui/button";
@@ -11,7 +11,7 @@ import {
 import DeletePostDialog from "./DeletePostDialog";
 
 interface PostMoreButtonProps {
-  post: PostData;
+  post: FeedPostData;
   className?: string;
 }
 

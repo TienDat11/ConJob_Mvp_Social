@@ -2,13 +2,13 @@
 
 import { validateRequest } from "@/auth";
 import prisma from "@/lib/prisma";
-import { getCommentDataInclude, PostData } from "@/lib/types";
+import { FeedPostData, getCommentDataInclude } from "@/lib/types";
 import { createCommentSchema } from "@/lib/validation";
 
 export async function submitComment({
   post,
   content
-}: {post: PostData, content: string}) {
+}: {post: FeedPostData, content: string}) {
   const { user } = await validateRequest();
 
   if(!user) throw new Error("Unauthorized");

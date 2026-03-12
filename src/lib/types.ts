@@ -1,4 +1,6 @@
 import { Prisma } from "@prisma/client";
+import type { Dispatch, SetStateAction } from "react";
+import { ResumeValues } from "./validation";
 
 export function getUserDataSelect(loggedInUserId: string) {
   return {
@@ -28,6 +30,29 @@ export function getUserDataSelect(loggedInUserId: string) {
 export type UserData = Prisma.UserGetPayload<{
   select: ReturnType<typeof getUserDataSelect>;
 }>
+
+export function getFeedUserSelect(loggedInUserId: string) {
+  return {
+    id: true,
+    username: true,
+    displayName: true,
+    avatarUrl: true,
+    bio: true,
+    followers: {
+      where: {
+        followerId: loggedInUserId,
+      },
+      select: {
+        followerId: true,
+      },
+    },
+    _count: {
+      select: {
+        followers: true,
+      },
+    },
+  } satisfies Prisma.UserSelect;
+}
 
 export function getPostDataInclude(loggedInUserId: string) {
   return {
@@ -60,13 +85,57 @@ export function getPostDataInclude(loggedInUserId: string) {
   } satisfies Prisma.PostInclude;
 }
 
+export function getFeedPostSelect(loggedInUserId: string) {
+  return {
+    id: true,
+    content: true,
+    createdAt: true,
+    user: {
+      select: getFeedUserSelect(loggedInUserId),
+    },
+    attachments: {
+      select: {
+        id: true,
+        url: true,
+        type: true,
+      },
+    },
+    likes: {
+      where: {
+        userId: loggedInUserId,
+      },
+      select: {
+        userId: true,
+      },
+    },
+    bookmarks: {
+      where: {
+        userId: loggedInUserId,
+      },
+      select: {
+        userId: true,
+      },
+    },
+    _count: {
+      select: {
+        likes: true,
+        comments: true,
+      },
+    },
+  } satisfies Prisma.PostSelect;
+}
+
 
 export type PostData = Prisma.PostGetPayload<{
   include: ReturnType<typeof getPostDataInclude>;
 }>;
 
+export type FeedPostData = Prisma.PostGetPayload<{
+  select: ReturnType<typeof getFeedPostSelect>;
+}>;
+
 export interface PostsPage {
-  posts: PostData[];
+  posts: FeedPostData[];
   nextCursor: string | null;
 }
 
@@ -87,7 +156,11 @@ export interface CommentPage {
   previousCursor: string | null;
 } 
 
-export const notificationsInclude = {
+export const notificationsSelect = {
+  id: true,
+  type: true,
+  read: true,
+  postId: true,
   issuer: {
     select: {
       username: true,
@@ -97,12 +170,12 @@ export const notificationsInclude = {
   },
   post: {
     select: {
-      content: true
+      content: true,
     },
   },
-} satisfies Prisma.NotificationInclude
+} satisfies Prisma.NotificationSelect
 
-export type NotificationData = Prisma.NotificationGetPayload<{include:typeof notificationsInclude}>
+export type NotificationData = Prisma.NotificationGetPayload<{select:typeof notificationsSelect}>
 
 export interface NotificationPage {
   notifications: NotificationData[];
@@ -131,6 +204,25 @@ export interface MessageCountInfo {
   unreadCount: number;
 }
 
+export interface HeaderUnreadStateInfo {
+  notifications: number;
+  messages: number;
+}
+
 export interface ValuesNameChat {
   nameChat: string;
 }
+
+export interface EditorFormProps {
+  resumeData: ResumeValues;
+  setResumeData: Dispatch<SetStateAction<ResumeValues>>;
+}
+
+export const resumeDataInclude = {
+  workExperiences: true,
+  educations: true,
+} satisfies Prisma.ResumeInclude;
+
+export type ResumeServerData = Prisma.ResumeGetPayload<{
+  include: typeof resumeDataInclude;
+}>;
